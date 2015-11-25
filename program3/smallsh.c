@@ -51,6 +51,9 @@ int main(int argc, char** argv) {
     // conditional check: is this child process
     // if so, behave appropriately
 
+    // check to see if any bg process completed 
+        // by using waitpid
+        // see point A below
     // print prompt ": symbol"
     // flush out prompt each time it is printed
 
@@ -83,8 +86,32 @@ int main(int argc, char** argv) {
     // and exit with status 1
     // before exec
 
+    // if command is exit
+    // then kill any processes or jobs that shell has started
+    // and then exit the shell
+
+    // if command is status
+    // then print exit status of last fg command
+
+    // if command is terminated by signal
+    // then print message indicating which signal terminated the process
+
+    // POINT A
+    // if command is bg process
+    // then print process id when begins
+    // when bg process terminates 
+    // then print process id and exit status 
+
     // catch CTRL-C interrupts from keyboard
     // make sure they do not terminate shell or bg commands, but only fg command
+
+    // if command is cd
+    // then change directories
+    // if no args, change to directory specified in HOME env var
+    // if one arg, change to dir provided
+        // support absolute and relative paths
+    // this is working directory
+    // when process exits 
 
 
     return 0;
