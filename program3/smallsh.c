@@ -86,12 +86,16 @@ int main(int argc, char** argv) {
     // and exit with status 1
     // before exec
 
+    // if one of three built in commands
+        // do not need to support I/O redirection
+        // do not have to set any exit status
+
     // if command is exit
     // then kill any processes or jobs that shell has started
     // and then exit the shell
 
     // if command is status
-    // then print exit status of last fg command
+    // then print exit status or terminating signal of last fg command
 
     // if command is terminated by signal
     // then print message indicating which signal terminated the process
@@ -113,6 +117,10 @@ int main(int argc, char** argv) {
     // this is working directory
     // when process exits 
 
+    // any other command is passed on to member of exec() family of functions
+
+    // if command is blank line or comment
+    // then ignore it, do nothing, and reprompt for another command
 
     return 0;
 }
