@@ -78,6 +78,13 @@ int main(int argc, char** argv) {
         // get user input
         fgets(input, MAX_LENGTH, stdin);
 
+        // check for blank line
+        if (input[0] == '\n')
+        {
+            printf("blank line\n");
+            continue;
+        }
+
         // loop to process args (up to 512)
         // make sure not more than max length for command line
             // error if too long? or just truncate and ignore excess?
@@ -86,16 +93,27 @@ int main(int argc, char** argv) {
         // problem here is that single-word command will end with newline
         // while command with args will end with space
         token = strtok(input, "\n");
+        // possible solution -- could tokenize for space first / each time
+        // then compare length, if equal, there were no spaces, so then
+        // tokenize for newline character
+        // or token returns null pointer if no match found so could check for that
+            // but can still use string after that???
+        // or could use diff approach with strchr()
+            // which gets the index of 1st matched char or returns null if not found
 
-        // should program remove leading space(s) before 1st command???
 
+        // be better to remove leading space(s) before 1st command
+            // implement this if time permits
 
         // if one of three built in commands
         // do not need to support I/O redirection
         // do not have to set any exit status
 
-//        if (strcmp(token, commands[0]) == 0) // exit
-        if (strcmp(token, "exit") == 0)
+        if (strncmp(token, "#", 1) == 0)
+        {
+            printf("comment\n");
+        }
+        else if (strcmp(token, "exit") == 0)
         {
             // if command is exit
             // then kill any processes or jobs that shell has started
@@ -104,6 +122,7 @@ int main(int argc, char** argv) {
         }
         else if (strcmp(token, "cd") == 0)
         {
+            printf("cd\n");
             // if command is cd
             // then change directories
             // if no args, change to directory specified in HOME env var
@@ -114,12 +133,13 @@ int main(int argc, char** argv) {
         }
         else if (strcmp(token, "status") == 0)
         {
+            printf("status\n");
             // if command is status
             // then print exit status or terminating signal of last fg command
         }
         else
         {
-            printf("ok\n");
+            printf("default\n");
             // pass through to BASH
         }
 
