@@ -49,8 +49,10 @@ int main(int argc, char** argv) {
 
     // declare variables
     bool repeat = true;
-    char command[MAX_LENGTH];
+    char input[MAX_LENGTH];
+    char* token;
 //    int argCount;
+
 
     // conditional check: is this child process
     // if so, behave appropriately
@@ -74,23 +76,55 @@ int main(int argc, char** argv) {
         printf(": ");
 
         // get user input
-        fgets(command, MAX_LENGTH, stdin);
+        fgets(input, MAX_LENGTH, stdin);
 
         // loop to process args (up to 512)
-            // is there prebuilt way to get / refer to args, similar to shell script?
         // make sure not more than max length for command line
             // error if too long? or just truncate and ignore excess?
 
+        // parse user input
+        // problem here is that single-word command will end with newline
+        // while command with args will end with space
+        token = strtok(input, "\n");
 
-        // parse user input and remove newline character at end of string
-        strtok(command, "\n");
+        // should program remove leading space(s) before 1st command???
 
-        printf("ok\n");
+
+        // if one of three built in commands
+        // do not need to support I/O redirection
+        // do not have to set any exit status
+
+//        if (strcmp(token, commands[0]) == 0) // exit
+        if (strcmp(token, "exit") == 0)
+        {
+            // if command is exit
+            // then kill any processes or jobs that shell has started
+            // and then exit the shell
+            repeat = false;
+        }
+        else if (strcmp(token, "cd") == 0)
+        {
+            // if command is cd
+            // then change directories
+            // if no args, change to directory specified in HOME env var
+            // if one arg, change to dir provided
+                // support absolute and relative paths
+            // this is working directory
+            // when process exits
+        }
+        else if (strcmp(token, "status") == 0)
+        {
+            // if command is status
+            // then print exit status or terminating signal of last fg command
+        }
+        else
+        {
+            printf("ok\n");
+            // pass through to BASH
+        }
 
     } // repeat until user exits shell
     while(repeat == true);
-
-    // respond appropriately to valid input
 
     // use fork, exec, and waitpid to execute commands
     // conditional check: foreground or background
@@ -115,16 +149,6 @@ int main(int argc, char** argv) {
     // and exit with status 1
     // before exec
 
-    // if one of three built in commands
-        // do not need to support I/O redirection
-        // do not have to set any exit status
-
-    // if command is exit
-    // then kill any processes or jobs that shell has started
-    // and then exit the shell
-
-    // if command is status
-    // then print exit status or terminating signal of last fg command
 
     // if command is terminated by signal
     // then print message indicating which signal terminated the process
@@ -137,14 +161,6 @@ int main(int argc, char** argv) {
 
     // catch CTRL-C interrupts from keyboard
     // make sure they do not terminate shell or bg commands, but only fg command
-
-    // if command is cd
-    // then change directories
-    // if no args, change to directory specified in HOME env var
-    // if one arg, change to dir provided
-        // support absolute and relative paths
-    // this is working directory
-    // when process exits
 
     // any other command is passed on to member of exec() family of functions
 
