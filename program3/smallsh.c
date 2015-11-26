@@ -20,14 +20,15 @@
  **
  *****************************************************************************/
 
-/*
 #include <errno.h>     // for errno
+#include <stdio.h>     // for fgets (, fopen, fclose, fseek)
+#include <string.h>    // for strcpy, strcat
+
+/*
 #include <unistd.h>    // for getpid
 #include <sys/types.h> // for pid_t
-#include <stdio.h>     // for fgets, fopen, fclose, fseek
 #include <stdlib.h>    // for rand and srand
 #include <sys/stat.h>  // for stat
-#include <string.h>    // for strcpy, strcat
 #include <time.h>      // for time
 #include <fcntl.h>     // for open
 */
@@ -47,19 +48,47 @@ typedef enum { false, true } bool;
 int main(int argc, char** argv) {
 
     // declare variables
+    bool repeat = true;
+    char command[MAX_LENGTH];
+//    int argCount;
 
     // conditional check: is this child process
     // if so, behave appropriately
 
-    // check to see if any bg process completed 
-        // by using waitpid
-        // see point A below
-    // print prompt ": symbol"
-    // flush out prompt each time it is printed
+    do
+    {
 
-    // get input
+        // check to see if any bg process completed
+            // by using waitpid
+            // see point A below
+        // print prompt ": symbol"
+        // flush out prompt each time it is printed
 
-    // validate input
+        // get input
+
+        // validate input?
+            // do not need to do error checking for syntax
+
+
+        // prompt user for input
+        printf(": ");
+
+        // get user input
+        fgets(command, MAX_LENGTH, stdin);
+
+        // loop to process args (up to 512)
+            // is there prebuilt way to get / refer to args, similar to shell script?
+        // make sure not more than max length for command line
+            // error if too long? or just truncate and ignore excess?
+
+
+        // parse user input and remove newline character at end of string
+        strtok(command, "\n");
+
+        printf("ok\n");
+
+    } // repeat until user exits shell
+    while(repeat == true);
 
     // respond appropriately to valid input
 
@@ -103,8 +132,8 @@ int main(int argc, char** argv) {
     // POINT A
     // if command is bg process
     // then print process id when begins
-    // when bg process terminates 
-    // then print process id and exit status 
+    // when bg process terminates
+    // then print process id and exit status
 
     // catch CTRL-C interrupts from keyboard
     // make sure they do not terminate shell or bg commands, but only fg command
@@ -115,7 +144,7 @@ int main(int argc, char** argv) {
     // if one arg, change to dir provided
         // support absolute and relative paths
     // this is working directory
-    // when process exits 
+    // when process exits
 
     // any other command is passed on to member of exec() family of functions
 
