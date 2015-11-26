@@ -23,11 +23,12 @@
 #include <errno.h>     // for errno
 #include <stdio.h>     // for fgets (, fopen, fclose, fseek)
 #include <string.h>    // for strcpy, strcat
+#include <sys/types.h> // for pid_t
+#include <sys/wait.h>  // for waitpid
 
 /*
-#include <unistd.h>    // for getpid
-#include <sys/types.h> // for pid_t
 #include <stdlib.h>    // for rand and srand
+#include <unistd.h>    // getpid
 #include <sys/stat.h>  // for stat
 #include <time.h>      // for time
 #include <fcntl.h>     // for open
@@ -51,32 +52,39 @@ int main(int argc, char** argv) {
     bool repeat = true;
     char input[MAX_LENGTH];
     char* token;
+    pid_t cpid;
+    int status;
 //    int argCount;
 
 
     // conditional check: is this child process
     // if so, behave appropriately
+    // do this here or in other files???
 
     do
     {
 
-        // check to see if any bg process completed
-            // by using waitpid
-            // see point A below
-        // print prompt ": symbol"
+        // check to see if any bg process completed by using waitpid
+            // lec 9 pg 5
+        cpid = waitpid(-1, &status, WNOHANG);
+
+        // POINT A
+        // if command is bg process
+        // then print process id when begins
+        // when bg process terminates
+        // then print process id and exit status
+
         // flush out prompt each time it is printed
-
-        // get input
-
-        // validate input?
-            // do not need to do error checking for syntax
-
+        fflush(stdin);
 
         // prompt user for input
         printf(": ");
 
         // get user input
         fgets(input, MAX_LENGTH, stdin);
+
+        // validate input?
+            // do not need to do error checking for syntax
 
         // check for blank line
         if (input[0] == '\n')
@@ -172,12 +180,6 @@ int main(int argc, char** argv) {
 
     // if command is terminated by signal
     // then print message indicating which signal terminated the process
-
-    // POINT A
-    // if command is bg process
-    // then print process id when begins
-    // when bg process terminates
-    // then print process id and exit status
 
     // catch CTRL-C interrupts from keyboard
     // make sure they do not terminate shell or bg commands, but only fg command
