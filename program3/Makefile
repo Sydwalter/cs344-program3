@@ -1,8 +1,9 @@
-CFLAGS = -Wall -fpic -coverage -lm
-GCOV = -ftest-coverage -fprofile-arcs
+CFLAGS = -Wall
+# -fpic -coverage -lm
+# GCOV = -ftest-coverage -fprofile-arcs
 
 smallsh: smallsh.c
-	gcc -o smallsh -g $(CFLAGS)
+	gcc -o smallsh smallsh.c -g $(CFLAGS)
 
 all: smallsh
 

@@ -21,6 +21,7 @@
  *****************************************************************************/
 
 #include <errno.h>     // for errno
+#include <signal.h>
 #include <stdio.h>     // for fgets (, fopen, fclose, fseek)
 #include <string.h>    // for strcpy, strcat
 #include <sys/types.h> // for pid_t
@@ -125,6 +126,8 @@ int main(int argc, char** argv) {
         {
             // if command is exit
             // then kill any processes or jobs that shell has started
+            kill(0, SIGTERM);       
+
             // and then exit the shell
             repeat = false;
         }
