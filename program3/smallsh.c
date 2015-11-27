@@ -26,6 +26,7 @@
 #include <string.h>    // for strcpy, strcat
 #include <sys/types.h> // for pid_t
 #include <sys/wait.h>  // for waitpid
+#include <unistd.h>    // for exec (,getpid)
 
 /*
 #include <stdlib.h>    // for rand and srand
@@ -54,6 +55,7 @@ int main(int argc, char** argv) {
     char input[MAX_LENGTH];
     char* token;
     pid_t cpid;
+    int exitStatus;
     int status;
 //    int argCount;
 
@@ -141,17 +143,67 @@ int main(int argc, char** argv) {
                 // support absolute and relative paths
             // this is working directory
             // when process exits
+
+            // SEE LECTURE 9 PAGE 10
+
         }
         else if (strcmp(token, "status") == 0)
         {
-            printf("status\n");
             // if command is status
             // then print exit status or terminating signal of last fg command
+            // does this have to be manually stored by the program ahead of time
+            // or is there some standard built-in functionality to get it?
+            // should it check the last one prior to this iteration or
+            // should it check the exit status of the last one on the next iteration
+            // and if nothing there then fall back to the last one from whenever?    
+
+            if (WIFEXITED(status)) // lecture 9 page 5
+            {
+                exitStatus = WEXITSTATUS(status);
+                printf("exit value %d\n", exitStatus);
+                // the way I'm currently doing this with WNOHANG returns 0 if nothing has completed
+                // so is not reporting the last process finished
+                // might have to track processes manually
+            }
+            else
+            {
+                printf("terminating signal \n");
+            } 
+            // no other option??
+            // what if no prcesses have been created??
+            // then neither case would apply, right?
+            // or what if last process was bg process?
+            // how do we not count that? 
         }
         else
         {
             printf("default\n");
-            // pass through to BASH
+            // pass through to BASH to interpret command there
+
+            // need fork and exec
+            cpid = fork();
+
+            if (cpid == 0) // child process
+            {
+                printf("child process running exec: %s\n", token);
+
+                // exec using path version in order to use Linux built-ins
+                execlp(token, token, NULL);
+
+                // these are the way to go
+                // but will require some array building, right?
+                // printf("child process running exec: %s\n", argv[1]);
+                // execl(argv[1], argv[1], NULL);
+
+                perror("error 0: ");
+            }
+            else if (cpid == -1)
+            {
+                perror("error 1: ");
+            } 
+
+            // parent process continues here
+            
         }
 
     } // repeat until user exits shell
