@@ -23,20 +23,20 @@
 #include <errno.h>     // for errno
 #include <signal.h>
 #include <stdio.h>     // for fgets (, fopen, fclose, fseek)
+#include <stdlib.h>    // for getenv (, rand and srand)
 #include <string.h>    // for strcpy, strcat
 #include <sys/types.h> // for pid_t
 #include <sys/wait.h>  // for waitpid
 #include <unistd.h>    // for exec (,getpid)
 
 /*
-#include <stdlib.h>    // for rand and srand
 #include <unistd.h>    // getpid
 #include <sys/stat.h>  // for stat
 #include <time.h>      // for time
 #include <fcntl.h>     // for open
 */
 
-#define DEBUG             1 
+#define DEBUG             0 
 
 #define MAX_ARGS        512 // maximum arguments accepted on command line
 #define MAX_LENGTH     2048 // maximum length for a command line
@@ -101,13 +101,12 @@ int main(int argc, char** argv) {
         // check for blank line
         if (input[0] == '\n')
         {
- //           printf("blank line\n");
             continue;
         }
 
         // process and parse input
         numArgs = 0;
-        token = strtok(input, " "); // check for args
+        token = strtok(input, " "); // check for multiple args
 
         if (DEBUG)
         {
@@ -117,7 +116,7 @@ int main(int argc, char** argv) {
         // loop to process args (up to 512)
         while (token != NULL && numArgs < MAX_ARGS)  
         {
-            // copy arg to arg array
+            // copy current arg to arg array
             strcpy(args[numArgs], token); 
 
             if (DEBUG)
@@ -132,54 +131,14 @@ int main(int argc, char** argv) {
             token = strtok(NULL, " ");
         }
 
-        // loop to process args (up to 512)
-//        do
-//        {
-            // search input string for space character
-//            pos = strchr(input, ' ');
-
-//            if (pos != NULL)
-//            {
-                // copy arg from string to arg array
-//                strcpy(args[argCount], pos); // this won't work as is
-
-                // increment count
-//                argCount++;
-//            }
-//        }
-//        while (pos != NULL && argCount < MAX_ARGS);  
-
-
-        // parse user input
-        // problem here is that single-word command will end with newline
-        // while command with args will end with space
-
-//        return 0;
-
         // remove newline char from last arg
         token = strtok(args[numArgs - 1], "\n");
         strcpy(args[numArgs - 1], token);
-
-//        token = strtok(NULL, "\n");
- //       token = strtok(input, "\n");
 
         if (DEBUG)
         {
             printf("args[%d] is: %s\n", numArgs - 1, args[numArgs - 1]); 
         }
-
-        //strcpy(args[argCount], token); 
-
-        //argCount++;
-
-        // possible solution -- could tokenize for space first / each time
-        // then compare length, if equal, there were no spaces, so then
-        // tokenize for newline character
-        // or token returns null pointer if no match found so could check for that
-            // but can still use string after that???
-        // or could use diff approach with strchr()
-            // which gets the index of 1st matched char or returns null if not found
-
 
         // be better to remove leading space(s) before 1st command
             // implement this if time permits
@@ -190,7 +149,7 @@ int main(int argc, char** argv) {
 
         if (strncmp(args[0], "#", 1) == 0)
         {
- //           printf("comment\n");
+            // do nothing
         }
         else if (strcmp(args[0], "exit") == 0)
         {
@@ -203,17 +162,19 @@ int main(int argc, char** argv) {
         }
         else if (strcmp(args[0], "cd") == 0)
         {
-   //         printf("cd\n");
-            // if command is cd
-            // then change directories
+            // change working directories
+
             // if no args, change to directory specified in HOME env var
+            if (numArgs == 1)
+            {
+                chdir(getenv("HOME"));
+            }
             // if one arg, change to dir provided
-                // support absolute and relative paths
-            // this is working directory
-            // when process exits
-
-            // SEE LECTURE 9 PAGE 10
-
+            else
+            {
+                chdir(args[1]);
+            }
+            // support absolute and relative paths
         }
         else if (strcmp(args[0], "status") == 0)
         {
