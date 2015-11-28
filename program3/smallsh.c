@@ -51,25 +51,30 @@ typedef enum { false, true } bool;
 int main(int argc, char** argv) {
 
     // declare variables
+//    bool isBackgroundProcess = false;
     bool repeat = true;
     char input[MAX_LENGTH];
     char* token;
-    pid_t cpid;
+    pid_t cpid = 0;
     int exitStatus;
     int status;
-//    int argCount;
-
-
-    // conditional check: is this child process
-    // if so, behave appropriately
-    // do this here or in other files???
 
     do
     {
-
-        // check to see if any bg process completed by using waitpid
+       do
+        {
+            // check to see if any bg process completed by using waitpid
             // lec 9 pg 5
-        cpid = waitpid(-1, &status, 0); // WNOHANG);
+            cpid = waitpid(-1, &status, 0); // WNOHANG);
+
+            // if so print process id and exit status
+            if (cpid > 0 && WIFEXITED(status)) 
+            {
+                exitStatus = WEXITSTATUS(status);
+                printf("process %d exited with exit status of %d.\n", cpid, exitStatus);
+            }
+        }
+        while (cpid > 0); // continue until all completed bg processes reporte
 
         // POINT A
         // if command is bg process
@@ -209,13 +214,13 @@ int main(int argc, char** argv) {
                 fflush(stdout);  
                 perror(" ");
             } 
+            else
+            {
+                // parent process continues here
 
-            // parent process continues here
-
-            // flush out prompt each time it is printed
- //           fflush(stdin);
-
- //              sleep(1);  // workaround for formatting issues          
+                // wait for child process if fg
+                waitpid(cpid, &status, 0);
+            }
         }
 
     } // repeat until user exits shell
