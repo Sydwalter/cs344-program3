@@ -23,7 +23,7 @@
 #include <errno.h>     // for errno
 #include <signal.h>
 #include <stdio.h>     // for fgets (, fopen, fclose, fseek)
-#include <stdlib.h>    // for getenv (, rand and srand)
+#include <stdlib.h>    // for getenv, malloc, free (, rand and srand)
 #include <string.h>    // for strcpy, strcat
 #include <sys/types.h> // for pid_t
 #include <sys/wait.h>  // for waitpid
@@ -55,30 +55,40 @@ int main(int argc, char** argv) {
     // declare variables
 //    bool isBackgroundProcess = false;
     bool repeat = true;
-    char args[MAX_ARGS][MAX_LENGTH];
+//    char args[MAX_ARGS + 1][MAX_LENGTH];
+    char* args[MAX_ARGS + 1];
     char input[MAX_LENGTH];
     char* token;
-    pid_t cpid = 0;
+    pid_t bgpid;
+    pid_t cpid;
+    int bgExitStatus;
     int exitStatus;
+    int i;
     int numArgs;
+    int bgStatus;
     int status;
+
+    // allocate memory for arg array
+    for (i = 0; i <= MAX_ARGS; i++)
+    {
+        args[i] = (char*) malloc((MAX_LENGTH + 1) * sizeof(char)); 
+    }  
 
     do
     {
        do
         {
             // check to see if any bg process completed by using waitpid
-            // lec 9 pg 5
-            cpid = waitpid(-1, &status, 0); // WNOHANG);
+            bgpid = waitpid(-1, &bgStatus, 0); // WNOHANG);
 
             // if so print process id and exit status
-            if (cpid > 0 && WIFEXITED(status)) 
+            if (bgpid > 0 && WIFEXITED(bgStatus)) 
             {
-                exitStatus = WEXITSTATUS(status);
-                printf("process %d exited with exit status of %d.\n", cpid, exitStatus);
+                bgExitStatus = WEXITSTATUS(bgStatus);
+                printf("process %d exited with exit status of %d.\n", bgpid, bgExitStatus);
             }
         }
-        while (cpid > 0); // continue until all completed bg processes reporte
+        while (bgpid > 0); // continue until all completed bg processes reporte
 
         // POINT A
         // if command is bg process
@@ -116,6 +126,12 @@ int main(int argc, char** argv) {
         // loop to process args (up to 512)
         while (token != NULL && numArgs < MAX_ARGS)  
         {
+
+            if (DEBUG)
+            {
+                printf("prior to strcpy: strlen(args[%d]) = %d, strlen(token) = %d\n", numArgs, strlen(args[numArgs]), strlen(token)); 
+            }
+
             // copy current arg to arg array
             strcpy(args[numArgs], token); 
 
@@ -140,6 +156,10 @@ int main(int argc, char** argv) {
             printf("args[%d] is: %s\n", numArgs - 1, args[numArgs - 1]); 
         }
 
+        // add NULL to array index after last arg to signal end of args
+ //       strcpy(args[numArgs], "\0"); 
+        args[numArgs] = NULL;
+
         // be better to remove leading space(s) before 1st command
             // implement this if time permits
 
@@ -156,6 +176,12 @@ int main(int argc, char** argv) {
             // if command is exit
             // then kill any processes or jobs that shell has started
             kill(0, SIGTERM);       
+
+            // free allocated memory
+            for (i = 0; i <= MAX_ARGS; i++)
+            {
+                free(args[i]); 
+            }  
 
             // and then exit the shell
             repeat = false;
@@ -190,23 +216,17 @@ int main(int argc, char** argv) {
             {
                 exitStatus = WEXITSTATUS(status);
                 printf("exit value %d\n", exitStatus);
-                // the way I'm currently doing this with WNOHANG returns 0 if nothing has completed
-                // so is not reporting the last process finished
-                // might have to track processes manually
             }
             else
             {
-                printf("terminating signal \n");
+                printf("terminating signal was \n");
             } 
             // no other option??
             // what if no prcesses have been created??
             // then neither case would apply, right?
-            // or what if last process was bg process?
-            // how do we not count that? 
         }
         else
         {
-  //          printf("default\n");
             // pass through to BASH to interpret command there
 
             // need fork and exec
@@ -217,12 +237,8 @@ int main(int argc, char** argv) {
  //               printf("child process running exec: %s\n", token);
 
                 // exec using path version in order to use Linux built-ins
-                execlp(args[0], args[0], NULL);
-
-                // these are the way to go
-                // but will require some array building, right?
-                // printf("child process running exec: %s\n", argv[1]);
-                // execl(argv[1], argv[1], NULL);
+ //               execlp(args[0], args[0], NULL);
+                execvp(args[0], args);
 
                 // will never run unless error (i.e.- bad filename)
                 printf("%s:", args[0]);
@@ -234,7 +250,7 @@ int main(int argc, char** argv) {
             else if (cpid == -1) // parent process
             {   
                 // if unable to fork print error
-                printf("%s2", args[0]);
+                printf("%s:", args[0]);
                 fflush(stdout);  
                 perror(" ");
             } 
