@@ -69,7 +69,7 @@ int main(int argc, char** argv) {
 
         // check to see if any bg process completed by using waitpid
             // lec 9 pg 5
-        cpid = waitpid(-1, &status, WNOHANG);
+        cpid = waitpid(-1, &status, 0); // WNOHANG);
 
         // POINT A
         // if command is bg process
@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
         // then print process id and exit status
 
         // flush out prompt each time it is printed
-        fflush(stdin);
+ //       fflush(stdin);
 
         // prompt user for input
         printf(": ");
@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
         // check for blank line
         if (input[0] == '\n')
         {
-            printf("blank line\n");
+ //           printf("blank line\n");
             continue;
         }
 
@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
 
         if (strncmp(token, "#", 1) == 0)
         {
-            printf("comment\n");
+ //           printf("comment\n");
         }
         else if (strcmp(token, "exit") == 0)
         {
@@ -135,7 +135,7 @@ int main(int argc, char** argv) {
         }
         else if (strcmp(token, "cd") == 0)
         {
-            printf("cd\n");
+   //         printf("cd\n");
             // if command is cd
             // then change directories
             // if no args, change to directory specified in HOME env var
@@ -177,7 +177,7 @@ int main(int argc, char** argv) {
         }
         else
         {
-            printf("default\n");
+  //          printf("default\n");
             // pass through to BASH to interpret command there
 
             // need fork and exec
@@ -185,7 +185,7 @@ int main(int argc, char** argv) {
 
             if (cpid == 0) // child process
             {
-                printf("child process running exec: %s\n", token);
+ //               printf("child process running exec: %s\n", token);
 
                 // exec using path version in order to use Linux built-ins
                 execlp(token, token, NULL);
@@ -195,15 +195,27 @@ int main(int argc, char** argv) {
                 // printf("child process running exec: %s\n", argv[1]);
                 // execl(argv[1], argv[1], NULL);
 
-                perror("error 0: ");
+                // will never run unless error (i.e.- bad filename)
+                printf("%s:", token);
+                fflush(stdout);
+                perror(" ");  
+ //               printf("\n");
+                return(1); // end child process
             }
-            else if (cpid == -1)
-            {
-                perror("error 1: ");
+            else if (cpid == -1) // parent process
+            {   
+                // if unable to fork print error
+                printf("%s2", token);
+                fflush(stdout);  
+                perror(" ");
             } 
 
             // parent process continues here
-            
+
+            // flush out prompt each time it is printed
+ //           fflush(stdin);
+
+ //              sleep(1);  // workaround for formatting issues          
         }
 
     } // repeat until user exits shell
