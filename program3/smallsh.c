@@ -36,6 +36,8 @@
 #include <fcntl.h>     // for open
 */
 
+#define DEBUG             1 
+
 #define MAX_ARGS        512 // maximum arguments accepted on command line
 #define MAX_LENGTH     2048 // maximum length for a command line
 
@@ -53,10 +55,12 @@ int main(int argc, char** argv) {
     // declare variables
 //    bool isBackgroundProcess = false;
     bool repeat = true;
+    char args[MAX_ARGS][MAX_LENGTH];
     char input[MAX_LENGTH];
     char* token;
     pid_t cpid = 0;
     int exitStatus;
+    int numArgs;
     int status;
 
     do
@@ -83,7 +87,7 @@ int main(int argc, char** argv) {
         // then print process id and exit status
 
         // flush out prompt each time it is printed
- //       fflush(stdin);
+        fflush(stdout);
 
         // prompt user for input
         printf(": ");
@@ -101,14 +105,73 @@ int main(int argc, char** argv) {
             continue;
         }
 
+        // process and parse input
+        numArgs = 0;
+        token = strtok(input, " "); // check for args
+
+        if (DEBUG)
+        {
+            printf("token is %s\n", token); 
+        }
+
         // loop to process args (up to 512)
-        // make sure not more than max length for command line
-            // error if too long? or just truncate and ignore excess?
+        while (token != NULL && numArgs < MAX_ARGS)  
+        {
+            // copy arg to arg array
+            strcpy(args[numArgs], token); 
+
+            if (DEBUG)
+            {
+                printf("args[%d] is: %s\n", numArgs, args[numArgs]); 
+            }
+
+            // increment counter
+            numArgs++;
+ 
+            // get next arg, if any
+            token = strtok(NULL, " ");
+        }
+
+        // loop to process args (up to 512)
+//        do
+//        {
+            // search input string for space character
+//            pos = strchr(input, ' ');
+
+//            if (pos != NULL)
+//            {
+                // copy arg from string to arg array
+//                strcpy(args[argCount], pos); // this won't work as is
+
+                // increment count
+//                argCount++;
+//            }
+//        }
+//        while (pos != NULL && argCount < MAX_ARGS);  
+
 
         // parse user input
         // problem here is that single-word command will end with newline
         // while command with args will end with space
-        token = strtok(input, "\n");
+
+//        return 0;
+
+        // remove newline char from last arg
+        token = strtok(args[numArgs - 1], "\n");
+        strcpy(args[numArgs - 1], token);
+
+//        token = strtok(NULL, "\n");
+ //       token = strtok(input, "\n");
+
+        if (DEBUG)
+        {
+            printf("args[%d] is: %s\n", numArgs - 1, args[numArgs - 1]); 
+        }
+
+        //strcpy(args[argCount], token); 
+
+        //argCount++;
+
         // possible solution -- could tokenize for space first / each time
         // then compare length, if equal, there were no spaces, so then
         // tokenize for newline character
@@ -125,11 +188,11 @@ int main(int argc, char** argv) {
         // do not need to support I/O redirection
         // do not have to set any exit status
 
-        if (strncmp(token, "#", 1) == 0)
+        if (strncmp(args[0], "#", 1) == 0)
         {
  //           printf("comment\n");
         }
-        else if (strcmp(token, "exit") == 0)
+        else if (strcmp(args[0], "exit") == 0)
         {
             // if command is exit
             // then kill any processes or jobs that shell has started
@@ -138,7 +201,7 @@ int main(int argc, char** argv) {
             // and then exit the shell
             repeat = false;
         }
-        else if (strcmp(token, "cd") == 0)
+        else if (strcmp(args[0], "cd") == 0)
         {
    //         printf("cd\n");
             // if command is cd
@@ -152,7 +215,7 @@ int main(int argc, char** argv) {
             // SEE LECTURE 9 PAGE 10
 
         }
-        else if (strcmp(token, "status") == 0)
+        else if (strcmp(args[0], "status") == 0)
         {
             // if command is status
             // then print exit status or terminating signal of last fg command
@@ -193,7 +256,7 @@ int main(int argc, char** argv) {
  //               printf("child process running exec: %s\n", token);
 
                 // exec using path version in order to use Linux built-ins
-                execlp(token, token, NULL);
+                execlp(args[0], args[0], NULL);
 
                 // these are the way to go
                 // but will require some array building, right?
@@ -201,7 +264,7 @@ int main(int argc, char** argv) {
                 // execl(argv[1], argv[1], NULL);
 
                 // will never run unless error (i.e.- bad filename)
-                printf("%s:", token);
+                printf("%s:", args[0]);
                 fflush(stdout);
                 perror(" ");  
  //               printf("\n");
@@ -210,7 +273,7 @@ int main(int argc, char** argv) {
             else if (cpid == -1) // parent process
             {   
                 // if unable to fork print error
-                printf("%s2", token);
+                printf("%s2", args[0]);
                 fflush(stdout);  
                 perror(" ");
             } 
