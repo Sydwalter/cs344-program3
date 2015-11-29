@@ -21,7 +21,7 @@
  *****************************************************************************/
 
 #include <errno.h>     // for errno
-#include <signal.h>
+#include <signal.h>    // for sigset_t
 #include <stdio.h>     // for fgets (, fopen, fclose, fseek)
 #include <stdlib.h>    // for getenv, malloc, free (, rand and srand)
 #include <string.h>    // for strcpy, strcat
@@ -36,12 +36,20 @@
 // define bool as type
 typedef enum { false, true } bool;
 
+// do I need to declare / define this or is it part of signal.h???
+//int sigaction(int signo, struct sigaction *newact, struct sigaction *origact);
+
+void bgHandler()
+{
+    printf("SIGCHLD signal caught.\n");
+}
 
 
-int main(int argc, char** argv) {
+
+int main(int argc, char** argv)
+{
 
     // declare variables
-
     bool isBackgroundProcess = false;
     bool repeat = true;
     char *args[MAX_ARGS + 1];
@@ -49,12 +57,30 @@ int main(int argc, char** argv) {
     char *token;
     pid_t bgpid;
     pid_t cpid;
+    pid_t fgpid;
     int bgExitStatus;
     int exitStatus;
     int i;
     int numArgs;
     int bgStatus;
     int status;
+
+    // looks like this is already defined in signal.h
+//    struct sigaction
+//    {
+//        void (*sa_handler) (int);
+//        sigset_t sa_mask;
+//        int sa_flags;
+//        void (*sa_sigaction) (int, siginfo_t *, void *);
+//    };          
+ 
+    // create instance of sigaction struct
+    struct sigaction background_act;
+    background_act.sa_handler = SIG_IGN;     
+    background_act.sa_flags = 0;
+    sigemptyset(&(background_act.sa_mask));
+
+    sigaction(SIGCHLD, &background_act, NULL);
 
     // allocate memory for arg array
     for (i = 0; i <= MAX_ARGS; i++)
@@ -70,13 +96,13 @@ int main(int argc, char** argv) {
        do
         {
             // check to see if any bg process completed by using waitpid
-            bgpid = waitpid(-1, &bgStatus, 0); // WNOHANG);
+            bgpid = 0; // waitpid(-1, &bgStatus, 0); // WNOHANG);
 
             // if so print process id and exit status
             if (bgpid > 0 && WIFEXITED(bgStatus)) 
             {
-                bgExitStatus = WEXITSTATUS(bgStatus);
-                printf("background pid %d is done: exit value %d.\n", bgpid, bgExitStatus);
+ //               bgExitStatus = WEXITSTATUS(bgStatus);
+   //             printf("background pid %d is done: exit value %d.\n", bgpid, bgExitStatus);
             }
         }
         while (bgpid > 0); // continue until all completed bg processes reporte
@@ -148,7 +174,7 @@ int main(int argc, char** argv) {
         {
             // set variable appropriately for later 
             isBackgroundProcess = true;
- 
+
             // decrement number of args since ampersand will be removed
             numArgs--; 
 
@@ -222,7 +248,6 @@ int main(int argc, char** argv) {
         }
         else // pass through to BASH to interpret command there
         {
-           
             // need fork and exec
             cpid = fork();
 
@@ -257,11 +282,24 @@ int main(int argc, char** argv) {
 
                     // reset boolean value for next iteration
                     isBackgroundProcess = false;
+
+//                    sigaction(SIGCHLD, &background_act, NULL);
+
+                    // check to see if process finished immediately
+                    // but do not wait
+//                    bgpid = waitpid(cpid, &bgStatus, WNOHANG);
+
+                    // if so print process id and exit status
+//                    if (bgpid > 0 && WIFEXITED(bgStatus)) 
+//                    {
+//                        bgExitStatus = WEXITSTATUS(bgStatus);
+//                        printf("background pid %d is done: exit value %d.\n", bgpid, bgExitStatus);
+//                    }
                 } 
                 else
                 {
                     // wait for fg child process
-                    waitpid(cpid, &status, 0);
+                    fgpid = waitpid(cpid, &status, 0);
                 }
             }
         }
