@@ -29,21 +29,9 @@
 #include <sys/wait.h>  // for waitpid
 #include <unistd.h>    // for exec (,getpid)
 
-/*
-#include <unistd.h>    // getpid
-#include <sys/stat.h>  // for stat
-#include <time.h>      // for time
-#include <fcntl.h>     // for open
-*/
-
-#define DEBUG             0 
-
+#define DEBUG             0 // change to 1 for debugging print statements 
 #define MAX_ARGS        512 // maximum arguments accepted on command line
 #define MAX_LENGTH     2048 // maximum length for a command line
-
-/*
-#define BUFFER_SIZE     512 // used for I/O operations
-*/
 
 // define bool as type
 typedef enum { false, true } bool;
@@ -53,9 +41,9 @@ typedef enum { false, true } bool;
 int main(int argc, char** argv) {
 
     // declare variables
-//    bool isBackgroundProcess = false;
+
+    bool isBackgroundProcess = false;
     bool repeat = true;
-//    char args[MAX_ARGS + 1][MAX_LENGTH];
     char *args[MAX_ARGS + 1];
     char input[MAX_LENGTH];
     char *token;
@@ -88,16 +76,10 @@ int main(int argc, char** argv) {
             if (bgpid > 0 && WIFEXITED(bgStatus)) 
             {
                 bgExitStatus = WEXITSTATUS(bgStatus);
-                printf("process %d exited with exit status of %d.\n", bgpid, bgExitStatus);
+                printf("background pid %d is done: exit value %d.\n", bgpid, bgExitStatus);
             }
         }
         while (bgpid > 0); // continue until all completed bg processes reporte
-
-        // POINT A
-        // if command is bg process
-        // then print process id when begins
-        // when bg process terminates
-        // then print process id and exit status
 
         // flush out prompt each time it is printed
         fflush(stdout);
@@ -107,9 +89,6 @@ int main(int argc, char** argv) {
 
         // get user input
         fgets(input, MAX_LENGTH, stdin);
-
-        // validate input?
-            // do not need to do error checking for syntax
 
         // check for blank line
         if (input[0] == '\n')
@@ -136,7 +115,6 @@ int main(int argc, char** argv) {
             }
 
             // copy current arg to arg array
-//            strcpy(args[numArgs], token); 
             *next = token;
 
             if (DEBUG)
@@ -158,9 +136,6 @@ int main(int argc, char** argv) {
         }
 
         // remove newline char from last arg
-//        token = strtok(args[numArgs - 1], "\n");
-//        strcpy(args[numArgs - 1], token);
-
         *next = strtok(*next, "\n"); 
 
         if (DEBUG)
@@ -168,22 +143,28 @@ int main(int argc, char** argv) {
             printf("args[%d] is: %s\n", numArgs - 1, args[numArgs - 1]); 
         }
 
-        // add NULL to array index after last arg to signal end of args
- //       strcpy(args[numArgs], "\0"); 
-//        args[numArgs] = NULL;
-        *next++;
+        // if command is bg process
+        if (strcmp(args[numArgs - 1], "&") == 0)
+        {
+            // set variable appropriately for later 
+            isBackgroundProcess = true;
+ 
+            // decrement number of args since ampersand will be removed
+            numArgs--; 
+
+            // do not increment pointer so that ampersand is removed  
+        }
+        else
+        {
+            // increment pointer
+            *next++;
+        }
+         // add NULL to array index after last arg to signal end of args
         *next = NULL;
-
-        // be better to remove leading space(s) before 1st command
-            // implement this if time permits
-
-        // if one of three built in commands
-        // do not need to support I/O redirection
-        // do not have to set any exit status
 
         if (strncmp(args[0], "#", 1) == 0)
         {
-            // do nothing
+            // do nothing for comments
         }
         else if (strcmp(args[0], "exit") == 0)
         {
@@ -239,26 +220,22 @@ int main(int argc, char** argv) {
             // what if no prcesses have been created??
             // then neither case would apply, right?
         }
-        else
+        else // pass through to BASH to interpret command there
         {
-            // pass through to BASH to interpret command there
-
+           
             // need fork and exec
             cpid = fork();
 
             if (cpid == 0) // child process
             {
- //               printf("child process running exec: %s\n", token);
-
                 // exec using path version in order to use Linux built-ins
- //               execlp(args[0], args[0], NULL);
                 execvp(args[0], args);
 
                 // will never run unless error (i.e.- bad filename)
                 printf("%s:", args[0]);
                 fflush(stdout);
                 perror(" ");  
- //               printf("\n");
+ 
                 return(1); // end child process
             }
             else if (cpid == -1) // parent process
@@ -272,8 +249,20 @@ int main(int argc, char** argv) {
             {
                 // parent process continues here
 
-                // wait for child process if fg
-                waitpid(cpid, &status, 0);
+                // if command is bg process
+                if (isBackgroundProcess == true)
+                {
+                    // then print process id when begins
+                    printf("background pid is %d\n", cpid);
+
+                    // reset boolean value for next iteration
+                    isBackgroundProcess = false;
+                } 
+                else
+                {
+                    // wait for fg child process
+                    waitpid(cpid, &status, 0);
+                }
             }
         }
 
