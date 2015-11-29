@@ -56,9 +56,9 @@ int main(int argc, char** argv) {
 //    bool isBackgroundProcess = false;
     bool repeat = true;
 //    char args[MAX_ARGS + 1][MAX_LENGTH];
-    char* args[MAX_ARGS + 1];
+    char *args[MAX_ARGS + 1];
     char input[MAX_LENGTH];
-    char* token;
+    char *token;
     pid_t bgpid;
     pid_t cpid;
     int bgExitStatus;
@@ -76,6 +76,9 @@ int main(int argc, char** argv) {
 
     do
     {
+       // create array of pointers to the strings in the arg array
+       char **next = args;
+ 
        do
         {
             // check to see if any bg process completed by using waitpid
@@ -133,23 +136,32 @@ int main(int argc, char** argv) {
             }
 
             // copy current arg to arg array
-            strcpy(args[numArgs], token); 
+//            strcpy(args[numArgs], token); 
+            *next = token;
 
             if (DEBUG)
             {
                 printf("args[%d] is: %s\n", numArgs, args[numArgs]); 
             }
 
-            // increment counter
+            // increment argument  counter
             numArgs++;
  
             // get next arg, if any
             token = strtok(NULL, " ");
+
+            // increment pointer unless last iteration
+            if (token != NULL)
+            {
+                *next++;
+            } 
         }
 
         // remove newline char from last arg
-        token = strtok(args[numArgs - 1], "\n");
-        strcpy(args[numArgs - 1], token);
+//        token = strtok(args[numArgs - 1], "\n");
+//        strcpy(args[numArgs - 1], token);
+
+        *next = strtok(*next, "\n"); 
 
         if (DEBUG)
         {
@@ -158,7 +170,9 @@ int main(int argc, char** argv) {
 
         // add NULL to array index after last arg to signal end of args
  //       strcpy(args[numArgs], "\0"); 
-        args[numArgs] = NULL;
+//        args[numArgs] = NULL;
+        *next++;
+        *next = NULL;
 
         // be better to remove leading space(s) before 1st command
             // implement this if time permits
