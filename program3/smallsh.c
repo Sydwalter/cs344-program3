@@ -45,6 +45,7 @@ typedef enum { false, true } bool;
 // bool childCompleted = false;
 int completed_cur = 0;
 int cur = 0;                   // index to add next bg process in bgpid[]
+int signalNum = 0;
 pid_t bgpid[MAX_PIDS];         // array of open background process IDs
 pid_t completed_pid[MAX_PIDS]; // array of completed bg process IDs
 pid_t fgpid;                   // running foreground process
@@ -56,6 +57,11 @@ void bgHandler(int sig, siginfo_t* info, void* vp);
 
 
 
+// add comment block here
+void sigintHandler(int sig, siginfo_t* info, void* vp);
+
+
+
 int main(int argc, char** argv)
 {
     // declare variables
@@ -63,8 +69,6 @@ int main(int argc, char** argv)
     bool repeat = true;
     char *args[MAX_ARGS + 1];
     char input[MAX_LENGTH];
-//    char **next;
-//    char **temp;
     char *token;
     pid_t cpid;
     int bgExitStatus;
@@ -77,14 +81,20 @@ int main(int argc, char** argv)
     int numArgs;
     int status;
 
-    // create instance of sigaction struct
+    // create instance of sigaction struct for background processes
     struct sigaction background_act;
-    background_act.sa_sigaction = bgHandler; // SIG_IGN    
+    background_act.sa_sigaction = bgHandler;     
     background_act.sa_flags = SA_SIGINFO|SA_RESTART;
     sigemptyset(&(background_act.sa_mask));
-
     // set up signal handler for completed child process
     sigaction(SIGCHLD, &background_act, NULL);
+
+    // create instance of sigaction struct for foreground processes
+    struct sigaction foreground_act;
+    foreground_act.sa_sigaction = sigintHandler;
+    foreground_act.sa_flags = SA_SIGINFO|SA_RESTART;
+    sigemptyset(&(foreground_act.sa_mask));
+    sigaction(SIGINT, &foreground_act, NULL); 
 
     // initialize arrays for bg processes
     for (i = 0; i < MAX_PIDS; i++)
@@ -104,15 +114,6 @@ int main(int argc, char** argv)
         } 
     }  
 
-//    for (i = 0; i <= MAX_ARGS; i++)
-//    {
-//        printf("now freeing args[%d]\n", i);
-
-//        free(args[i]); 
-//    }
-
- 
-
     do
     {
         // create array of pointers to the strings in the arg array
@@ -121,34 +122,31 @@ int main(int argc, char** argv)
         // clear input buffer each iteration
         strcpy(input, "\0");
  
-//       do
-
         i = 0;
-        // if array of completed bg processes contains 1 or more PIDs
-//        if (completed_pid[0] != INT_MAX)
+
+        // this loop cleans up zombies, waiting for all ps in completed array
         while (i < MAX_PIDS && completed_pid[i] != INT_MAX)
         {
-
             if (DEBUG) 
             {
                 printf("Now cleaning up process %d\n", completed_pid[i]);
             }
 
+            // wait on current process
             completed_pid[i] = waitpid(completed_pid[i], &bgStatus, 0);
 
-            // if so print process id and exit status
+            // print process id and exit status
             if (WIFEXITED(bgStatus)) 
             {
                 bgExitStatus = WEXITSTATUS(bgStatus);
                 printf("background pid %d is done: exit value %d.\n", completed_pid[i], bgExitStatus);
             }
 
-            // remove from open background process array
-            // cycle through array of bg processes and look for match 
+            // remove current ps from open background process array
             j = 0;
             while (j < MAX_PIDS && bgpid[j] != INT_MAX)
-            {
-
+            { // cycle through array of bg processes
+                // and look for match 
                 if (bgpid[j] == completed_pid[i])
                 {
                     if (DEBUG)
@@ -156,6 +154,7 @@ int main(int argc, char** argv)
                         printf("Now removing process %d from array.\n", bgpid[j]);
                     }                   
 
+                    // replace value of current bg process 
                     bgpid[j] = INT_MAX;
  
                     // shift all subsequent PIDs down to fill `gap`
@@ -169,15 +168,17 @@ int main(int argc, char** argv)
                     // adjust cur index value & make room for new PID  
                     cur--; 
                 }
+                // increment counter
                 j++;
             }
 
+            // replace value of current completed process
             completed_pid[i] = INT_MAX;
 
             // increment counter
             i++; 
         }
-//        while (bgpid > 0); // continue until all completed bg processes reporte
+
         // reset completed bg process array index tracker
         completed_cur = 0;
 
@@ -189,12 +190,9 @@ int main(int argc, char** argv)
         printf(": ");
 
         // get user input
-//        do
-//        {
-            fgets(input, MAX_LENGTH, stdin);
-//        }
-//        while (input == NULL);
+        fgets(input, MAX_LENGTH, stdin);
 
+        // flush out prompt
         fflush(stdin);
 
         // check for blank line
@@ -218,13 +216,10 @@ int main(int argc, char** argv)
 
             if (DEBUG)
             {
- //               printf("prior to strcpy: strlen(args[%d]) = %d, strlen(token) = %d\n", numArgs, strlen(args[numArgs]), strlen(token)); 
-
                 printf("overwriting %s with %s\n", *next, token);
             }
 
             // copy current arg to arg array
-//            *next = token;
             strcpy(*next, token);
 
             if (DEBUG)
@@ -329,8 +324,7 @@ int main(int argc, char** argv)
 
         }
         else if (strcmp(args[0], "cd") == 0)
-        {
-            // change working directories
+        { // change working directories
 
             // if no args, change to directory specified in HOME env var
             if (numArgs == 1)
@@ -345,27 +339,22 @@ int main(int argc, char** argv)
             // support absolute and relative paths
         }
         else if (strcmp(args[0], "status") == 0)
-        {
-            // if command is status
-            // then print exit status or terminating signal of last fg command
-            // does this have to be manually stored by the program ahead of time
-            // or is there some standard built-in functionality to get it?
-            // should it check the last one prior to this iteration or
-            // should it check the exit status of the last one on the next iteration
-            // and if nothing there then fall back to the last one from whenever?    
+        { // print exit status or terminating signal of last fg command
 
-            if (WIFEXITED(status)) // lecture 9 page 5
+            if (WIFEXITED(status))
             {
                 exitStatus = WEXITSTATUS(status);
                 printf("exit value %d\n", exitStatus);
             }
-            else
+            else if (signalNum != 0)
             {
-                printf("terminating signal was \n");
+                printf("terminating signal was %d\n", signalNum);
             } 
-            // no other option??
-            // what if no prcesses have been created??
-            // then neither case would apply, right?
+
+// no other option??
+// what if no prcesses have been created??
+// then neither case would apply, right?
+
         }
         else // pass through to BASH to interpret command there
         {
@@ -378,7 +367,7 @@ int main(int argc, char** argv)
                 if (isBackgroundProcess == true)
                 {
                     // if so, redirect stdin to /dev/null
-                    fd = open("/dev/null/", O_RDONLY);
+                    fd = open("/dev/null", O_RDONLY);
                     if (fd == -1)
                     {
                         perror("open");
@@ -441,8 +430,11 @@ int main(int argc, char** argv)
                 } 
                 else
                 {
+                    // reset value of signal number
+                    signalNum = 0;                     
+
                     // assign cpid to global variable
-                    // for access in signal handlres  
+                    // for access in signal handlers  
                     fgpid = cpid;
 
                     // wait for fg child process
@@ -450,7 +442,13 @@ int main(int argc, char** argv)
 
                     // reset global variable so signal handlers know
                     // there is no active fg process
-                    fgpid = INT_MAX;   
+                    fgpid = INT_MAX;
+
+                    // if process was terminated by signal, print message
+                    if (signalNum != 0)
+                    {
+                        printf("terminated by signal %d\n", signalNum);
+                    }   
                 }
             }
         }
@@ -513,3 +511,21 @@ void bgHandler(int sig, siginfo_t* info, void* vp)
     return;
 }
 
+
+
+void sigintHandler(int sig, siginfo_t* info, void* vp)
+{
+    // if interrupt signal occurs while fg process is running, kill it
+    if (fgpid != INT_MAX)
+    {
+        // kill the foreground process
+        kill(fgpid, SIGKILL);
+ 
+        // set global variable for status messages
+        signalNum = 2;  
+    }  
+
+    // ignore interrupt signal for all other processes
+    // and simply return
+    return;
+}
