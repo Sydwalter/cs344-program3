@@ -48,7 +48,7 @@ int cur = 0;                   // index to add next bg process in bgpid[]
 int signalNum = 0;
 pid_t bgpid[MAX_PIDS];         // array of open background process IDs
 pid_t completed_pid[MAX_PIDS]; // array of completed bg process IDs
-pid_t fgpid;                   // running foreground process
+pid_t fgpid = INT_MAX;         // running foreground process
 
 
 
@@ -58,8 +58,8 @@ void bgHandler(int sig, siginfo_t* info, void* vp);
 
 
 // add comment block here
-void sigintHandler(int sig, siginfo_t* info, void* vp);
-
+//void sigintHandler(int sig, siginfo_t* info, void* vp);
+void sigintHandler();
 
 
 int main(int argc, char** argv)
@@ -91,10 +91,17 @@ int main(int argc, char** argv)
 
     // create instance of sigaction struct for foreground processes
     struct sigaction foreground_act;
-    foreground_act.sa_sigaction = sigintHandler;
-    foreground_act.sa_flags = SA_SIGINFO|SA_RESTART;
+    foreground_act.sa_handler = sigintHandler; //SIG_IGN;
+    foreground_act.sa_flags = SA_RESTART;
     sigemptyset(&(foreground_act.sa_mask));
     sigaction(SIGINT, &foreground_act, NULL); 
+
+    // create sigaction struct to ignore interrupts the rest of the time
+    struct sigaction restOfTheTime_act;
+    restOfTheTime_act.sa_handler = SIG_IGN;
+    restOfTheTime_act.sa_flags = SA_RESTART;
+    sigemptyset(&(restOfTheTime_act.sa_mask));
+    sigaction(SIGINT, &restOfTheTime_act, NULL); 
 
     // initialize arrays for bg processes
     for (i = 0; i < MAX_PIDS; i++)
@@ -437,8 +444,16 @@ int main(int argc, char** argv)
                     // for access in signal handlers  
                     fgpid = cpid;
 
+                    // set interrupt handler for fg process 
+//                    foreground_act.sa_handler = sigintHandler;
+                    sigaction(SIGINT, &foreground_act, NULL);
+
                     // wait for fg child process
                     fgpid = waitpid(fgpid, &status, 0);
+
+                    // restore to ignore interrupts
+//                    foreground_act.sa_handler = SIG_IGN;
+                    sigaction(SIGINT, &restOfTheTime_act, NULL);
 
                     // reset global variable so signal handlers know
                     // there is no active fg process
@@ -512,8 +527,8 @@ void bgHandler(int sig, siginfo_t* info, void* vp)
 }
 
 
-
-void sigintHandler(int sig, siginfo_t* info, void* vp)
+//void sigintHandler(int sig, siginfo_t* info, void* vp)
+void sigintHandler()
 {
     // if interrupt signal occurs while fg process is running, kill it
     if (fgpid != INT_MAX)
