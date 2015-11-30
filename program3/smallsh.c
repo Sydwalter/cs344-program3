@@ -33,16 +33,18 @@
 #define DEBUG             0 // change to 1 for debugging print statements 
 #define MAX_ARGS        512 // maximum arguments accepted on command line
 #define MAX_LENGTH     2048 // maximum length for a command line
+#define MAX_PIDS       1000 // maximum PIDs to track
 
 // define bool as type
 typedef enum { false, true } bool;
 
 
 // declare global variables
-bool childCompleted = false;
-int bgStatus; 
-pid_t bgpid[1000];         // array of open background process IDs
-pid_t completed_pid[1000]; // array of completed bg process IDs
+// bool childCompleted = false;
+int cur = 0;                   // index to add next bg process in bgpid[]
+pid_t bgpid[MAX_PIDS];         // array of open background process IDs
+pid_t completed_pid[MAX_PIDS]; // array of completed bg process IDs
+pid_t fgpid;                   // running foreground process
 
 
 
@@ -60,8 +62,8 @@ int main(int argc, char** argv)
     char input[MAX_LENGTH];
     char *token;
     pid_t cpid;
-    pid_t fgpid;
     int bgExitStatus;
+    int bgStatus; 
     int exitStatus;
     int i;
     int numArgs;
@@ -76,8 +78,11 @@ int main(int argc, char** argv)
     // set up signal handler for completed child process
     sigaction(SIGCHLD, &background_act, NULL);
 
-    // initialize first indices of process arrays
-    completed_pid[0] = bgpid[0] = INT_MAX; 
+    // initialize arrays for bg processes
+    for (i = 0; i < MAX_PIDS; i++)
+    {
+        completed_pid[i] = bgpid[i] = INT_MAX;
+    }   
 
     // allocate memory for arg array
     for (i = 0; i <= MAX_ARGS; i++)
@@ -94,26 +99,55 @@ int main(int argc, char** argv)
         strcpy(input, "\0");
  
 //       do
-        if (completed_pid[0] != INT_MAX)
+
+        i = 0;
+        // if array of completed bg processes contains 1 or more PIDs
+//        if (completed_pid[0] != INT_MAX)
+        while (i < MAX_PIDS && completed_pid[i] != INT_MAX)
         {
-            // check to see if any bg process completed by using waitpid
-            completed_pid[0] = waitpid(completed_pid[0], &bgStatus, 0); // WNOHANG);
+            completed_pid[i] = waitpid(completed_pid[i], &bgStatus, 0);
 
             // if so print process id and exit status
             if (WIFEXITED(bgStatus)) 
             {
                 bgExitStatus = WEXITSTATUS(bgStatus);
-                printf("background pid %d is done: exit value %d.\n", completed_pid[0], bgExitStatus);
+                printf("background pid %d is done: exit value %d.\n", completed_pid[i], bgExitStatus);
             }
-            // reset the value of the boolean variable
-//            childCompleted = false;
-            completed_pid[0] = INT_MAX;
+
+            // remove from open background process array
+            // cycle through array of bg processes and look for match 
+            int j = 0;
+            while (j < MAX_PIDS && bgpid[j] != INT_MAX)
+            {
+
+                if (bgpid[j] == completed_pid[i])
+                {
+                    bgpid[j] = INT_MAX;
+ 
+                    // shift all subsequent PIDs down to fill `gap`
+                    int k = j;                       
+                    while (k + 1 < MAX_PIDS && bgpid[k+1] != INT_MAX)
+                    {
+                        bgpid[k] = bgpid[k+1];
+                        bgpid[k+1] = INT_MAX;
+                        k++;
+                    }    
+                    // adjust cur index value & make room for new PID  
+                    cur--; 
+                }
+                j++;
+            }
+
+            completed_pid[i] = INT_MAX;
+
+            // increment counter
+            i++; 
         }
 //        while (bgpid > 0); // continue until all completed bg processes reporte
 
         // flush out prompt each time it is printed
-//        fflush(stdin);
-//        fflush(stdout);
+        fflush(stdin);
+        fflush(stdout);
 
         // prompt user for input
         printf(": ");
@@ -268,9 +302,10 @@ int main(int argc, char** argv)
                 execvp(args[0], args);
 
                 // will never run unless error (i.e.- bad filename)
-                printf("%s:", args[0]);
+                printf("%s", args[0]);
 //                fflush(stdin);
 //                fflush(stdout);
+                fflush(NULL);
                 perror(" ");  
  
                 return(1); // end child process
@@ -278,9 +313,10 @@ int main(int argc, char** argv)
             else if (cpid == -1) // parent process
             {   
                 // if unable to fork print error
-                printf("%s:", args[0]);
+                printf("%s", args[0]);
 //                fflush(stdin);
-//                fflush(stdout);  
+//                fflush(stdout); 
+                fflush(NULL);                 
                 perror(" ");
             } 
             else
@@ -297,13 +333,23 @@ int main(int argc, char** argv)
                     isBackgroundProcess = false;
 
                     // add process id to array of background processes
-                    bgpid[0] = cpid;
-
+                    if (cur < MAX_PIDs)
+                    {  
+                        bgpid[cur++] = cpid;
+                    }
                 } 
                 else
                 {
+                    // assign cpid to global variable
+                    // for access in signal handlres  
+                    fgpid = cpid;
+
                     // wait for fg child process
-                    fgpid = waitpid(cpid, &status, 0);
+                    fgpid = waitpid(fgpid, &status, 0);
+
+                    // reset global variable so signal handlers know
+                    // there is no active fg process
+                    fgpid = INT_MAX;   
                 }
             }
         }
@@ -355,14 +401,12 @@ void bgHandler(int sig, siginfo_t* info, void* vp)
 {
     pid_t ref_pid = info->si_pid; 
 
-    // cycle through array of open bg processes and look for match 
-
-    // if match found, move pid to array of completed bg processes
-    if (ref_pid == bgpid[0])
+    // if signal is not from fg process, process it here
+    if (ref_pid != fgpid)
     {
-        completed_pid[0] = bgpid[0];
- 
-        bgpid[0] = INT_MAX;
+        // add to completed bg process array so message can
+        // be displayed in main loop
+        completed_pid[0] = ref_pid;
     } 
 
     return;
