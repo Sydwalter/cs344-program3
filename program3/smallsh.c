@@ -61,12 +61,15 @@ int main(int argc, char** argv)
     bool repeat = true;
     char *args[MAX_ARGS + 1];
     char input[MAX_LENGTH];
+//    char **next;
+//    char **temp;
     char *token;
     pid_t cpid;
     int bgExitStatus;
     int bgStatus; 
     int exitStatus;
     int i;
+    int j;
     int numArgs;
     int status;
 
@@ -88,8 +91,23 @@ int main(int argc, char** argv)
     // allocate memory for arg array
     for (i = 0; i <= MAX_ARGS; i++)
     {
-        args[i] = (char*) malloc((MAX_LENGTH + 1) * sizeof(char)); 
+        args[i] = (char *) malloc((MAX_LENGTH + 1) * sizeof(char)); 
+
+        if (DEBUG)
+        {
+            strcpy(args[i], "filler");
+            printf("args[%d] = %s\n", i, args[i]);  
+        } 
     }  
+
+//    for (i = 0; i <= MAX_ARGS; i++)
+//    {
+//        printf("now freeing args[%d]\n", i);
+
+//        free(args[i]); 
+//    }
+
+ 
 
     do
     {
@@ -106,6 +124,12 @@ int main(int argc, char** argv)
 //        if (completed_pid[0] != INT_MAX)
         while (i < MAX_PIDS && completed_pid[i] != INT_MAX)
         {
+
+            if (DEBUG) 
+            {
+                printf("Now cleaning up process %d\n", completed_pid[i]);
+            }
+
             completed_pid[i] = waitpid(completed_pid[i], &bgStatus, 0);
 
             // if so print process id and exit status
@@ -117,12 +141,17 @@ int main(int argc, char** argv)
 
             // remove from open background process array
             // cycle through array of bg processes and look for match 
-            int j = 0;
+            j = 0;
             while (j < MAX_PIDS && bgpid[j] != INT_MAX)
             {
 
                 if (bgpid[j] == completed_pid[i])
                 {
+                    if (DEBUG)
+                    {
+                        printf("Now removing process %d from array.\n", bgpid[j]);
+                    }                   
+
                     bgpid[j] = INT_MAX;
  
                     // shift all subsequent PIDs down to fill `gap`
@@ -185,11 +214,14 @@ int main(int argc, char** argv)
 
             if (DEBUG)
             {
-                printf("prior to strcpy: strlen(args[%d]) = %d, strlen(token) = %d\n", numArgs, strlen(args[numArgs]), strlen(token)); 
+ //               printf("prior to strcpy: strlen(args[%d]) = %d, strlen(token) = %d\n", numArgs, strlen(args[numArgs]), strlen(token)); 
+
+                printf("overwriting %s with %s\n", *next, token);
             }
 
             // copy current arg to arg array
-            *next = token;
+//            *next = token;
+            strcpy(*next, token);
 
             if (DEBUG)
             {
@@ -209,11 +241,19 @@ int main(int argc, char** argv)
             } 
         }
 
+        if (DEBUG)
+        {
+            printf("overwriting %s", *next);
+        }
+
         // remove newline char from last arg
-        *next = strtok(*next, "\n"); 
+        token = strtok(*next, "\n"); 
+
+        strcpy(*next, token);
 
         if (DEBUG)
         {
+            printf(" with %s\n", *next);
             printf("args[%d] is: %s\n", numArgs - 1, args[numArgs - 1]); 
         }
 
@@ -233,8 +273,16 @@ int main(int argc, char** argv)
             // increment pointer
             *next++;
         }
-         // add NULL to array index after last arg to signal end of args
-        *next = NULL;
+
+        if (DEBUG)
+        {
+            printf("overwriting %s with NULL\n", *next);
+        }
+
+        // add NULL to array index after last arg to signal end of args
+//        strcpy(*next, "\0");
+//        char *temp = *next; // save pointer to dynamic memory for later
+//        *next = NULL;
 
         if (strncmp(args[0], "#", 1) == 0)
         {
@@ -242,18 +290,39 @@ int main(int argc, char** argv)
         }
         else if (strcmp(args[0], "exit") == 0)
         {
-            // if command is exit
-            // then kill any processes or jobs that shell has started
-            kill(0, SIGTERM);       
+
+            // kill any processes or jobs that shell has started
+            i = 0;
+            while (i < MAX_PIDS && bgpid[i] != INT_MAX)
+            {
+                if (DEBUG)
+                {
+                    printf("Now killing process %d\n", bgpid[i]);
+                }
+ 
+                kill(bgpid[i], SIGKILL);
+                i++;
+            }
+
+            // restore the pointer to allocated memory
+//            *next = temp; 
 
             // free allocated memory
             for (i = 0; i <= MAX_ARGS; i++)
             {
+                if (DEBUG)
+                {
+                    printf("Now freeing memory for args[%d], which has a value of %s\n",i, args[i]);
+                } 
                 free(args[i]); 
             }  
 
-            // and then exit the shell
+            // then kill any processes or jobs that shell has started
+            // kill(0, SIGTERM);       
+
+            // exit the shell
             repeat = false;
+
         }
         else if (strcmp(args[0], "cd") == 0)
         {
@@ -301,6 +370,12 @@ int main(int argc, char** argv)
 
             if (cpid == 0) // child process
             {
+
+        // add NULL to array index after last arg to signal end of args
+//        strcpy(*next, "\0");
+//        char *temp = *next; // save pointer to dynamic memory for later
+        *next = NULL;
+
                 // exec using path version in order to use Linux built-ins
                 execvp(args[0], args);
 
@@ -325,6 +400,9 @@ int main(int argc, char** argv)
             else
             {
                 // parent process continues here
+
+                // restore the pointer to allocated memory
+//                *next = temp; 
 
                 // if command is bg process
                 if (isBackgroundProcess == true)
