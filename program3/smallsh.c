@@ -42,7 +42,6 @@ typedef enum { false, true } bool;
 
 
 // declare global variables
-// bool childCompleted = false;
 int completed_cur = 0;
 int cur = 0;                   // index to add next bg process in bgpid[]
 int signalNum = 0;
@@ -58,7 +57,6 @@ void bgHandler(int sig, siginfo_t* info, void* vp);
 
 
 // add comment block here
-//void sigintHandler(int sig, siginfo_t* info, void* vp);
 void sigintHandler();
 
 
@@ -285,11 +283,6 @@ int main(int argc, char** argv)
             printf("overwriting %s with NULL\n", *next);
         }
 
-        // add NULL to array index after last arg to signal end of args
-//        strcpy(*next, "\0");
-//        char *temp = *next; // save pointer to dynamic memory for later
-//        *next = NULL;
-
         if (strncmp(args[0], "#", 1) == 0)
         {
             // do nothing for comments
@@ -310,9 +303,6 @@ int main(int argc, char** argv)
                 i++;
             }
 
-            // restore the pointer to allocated memory
-//            *next = temp; 
-
             // free allocated memory
             for (i = 0; i <= MAX_ARGS; i++)
             {
@@ -322,9 +312,6 @@ int main(int argc, char** argv)
                 } 
                 free(args[i]); 
             }  
-
-            // then kill any processes or jobs that shell has started
-            // kill(0, SIGTERM);       
 
             // exit the shell
             repeat = false;
@@ -358,23 +345,85 @@ int main(int argc, char** argv)
                 printf("terminating signal was %d\n", signalNum);
             } 
 
-// no other option??
-// what if no prcesses have been created??
-// then neither case would apply, right?
-
         }
         else // pass through to BASH to interpret command there
         {
             // need fork and exec
             cpid = fork();
 
+    // input/output redirection
+    // redirected input file is opened for reading only
+    // if cannot open file for reading
+    // then print error message
+    // and exit with status 1
+    // before exec
+
             if (cpid == 0) // child process
             {
-                // check to see if command is for bg process
-                if (isBackgroundProcess == true)
+                bool checkStatus = false; 
+                bool redirectInput = false;
+                bool redirectOutput = false;
+//                bool remove1 = false;
+//                bool remove2 = false;
+                int inputOffset = 0;
+                int outputOffset = 0;
+
+                if (numArgs > 4 && strcmp(args[numArgs-4], "<"))
                 {
-                    // if so, redirect stdin to /dev/null
+                    printf("1) input redirected to %s\n", args[numArgs-3]);     
+
+                    // set flag to redirect input
+                    redirectInput = true;
+
+                    // set target for input path
+                    inputOffset = 3; 
+                }
+                else if (numArgs > 2 && strcmp(args[numArgs-2], "<"))
+                {
+                    printf("2) input redirected to %s\n", args[numArgs-1]);     
+
+                    // set flag to redirect input
+                    redirectInput = true;
+
+                    // set target for input path
+                    inputOffset = 1; 
+                }
+                if (numArgs > 4 && strcmp(args[numArgs-4], ">"))
+                {
+                    printf("3) output redirected to %s\n", args[numArgs-3]);     
+
+                    // set flag to redirect input
+                    redirectOutput = true;
+
+                    // set target for output path
+                    outputOffset = 3; 
+                }
+                else if (numArgs > 2 && strcmp(args[numArgs-2], ">"))
+                {
+                    printf("4) output redirected to %s\n", args[numArgs-1]);     
+                    // set flag to redirect input
+                    redirectOutput = true;
+
+                    // set target for output path
+                    outputOffset = 1; 
+                }
+
+                // redirect stdin for bg process to dev/null if no path provided
+                if (isBackgroundProcess == true && redirectInput == false)
+                {
                     fd = open("/dev/null", O_RDONLY);
+
+                    checkStatus = true;      
+                }
+                else if (redirectInput == true)
+                {
+                    fd = open(args[numArgs - inputOffset], O_RDONLY);
+
+                    checkStatus = true;  
+                }
+
+                if (checkStatus == true)
+                {
                     if (fd == -1)
                     {
                         perror("open");
@@ -387,6 +436,42 @@ int main(int argc, char** argv)
                         perror("dup2");
                         exit(1);
                     }   
+//                    checkStatus = false;
+                }
+
+                if (redirectOutput == true)
+                {
+                    fd = open(args[numArgs - outputOffset], O_WRONLY|O_CREAT|O_TRUNC, 0644);
+
+                    if (fd == -1)
+                    {
+                        perror("open");
+                        exit(1); 
+                    }
+
+                    fd2 = dup2(fd, 1);
+                    if (fd2 == -1)
+                    {
+                        perror("dup2");
+                        exit(1);
+                    }   
+                }
+
+                i = 0;
+                // get the greater of the offsets, if any
+                if (inputOffset > outputOffset)
+                {
+                    i = inputOffset + 1;
+                }
+                else if (outputOffset > inputOffset)
+                {
+                    i = outputOffset + 1;
+                }
+
+                // move the pointer to omit the input redirection from array
+                for (j = i; j > 0; j--)
+                {
+                    *next--;
                 }
 
                 // add NULL pointer to last array index (only in child)
@@ -397,8 +482,6 @@ int main(int argc, char** argv)
 
                 // will never run unless error (i.e.- bad filename)
                 printf("%s", args[0]);
-//                fflush(stdin);
-//                fflush(stdout);
                 fflush(NULL);
                 perror("exec");  
  
@@ -408,17 +491,12 @@ int main(int argc, char** argv)
             {   
                 // if unable to fork print error
                 printf("%s", args[0]);
-//                fflush(stdin);
-//                fflush(stdout); 
                 fflush(NULL);                 
                 perror(" ");
             } 
             else
             {
                 // parent process continues here
-
-                // restore the pointer to allocated memory
-//                *next = temp; 
 
                 // if command is bg process
                 if (isBackgroundProcess == true)
@@ -445,14 +523,12 @@ int main(int argc, char** argv)
                     fgpid = cpid;
 
                     // set interrupt handler for fg process 
-//                    foreground_act.sa_handler = sigintHandler;
                     sigaction(SIGINT, &foreground_act, NULL);
 
                     // wait for fg child process
                     fgpid = waitpid(fgpid, &status, 0);
 
                     // restore to ignore interrupts
-//                    foreground_act.sa_handler = SIG_IGN;
                     sigaction(SIGINT, &restOfTheTime_act, NULL);
 
                     // reset global variable so signal handlers know
@@ -470,41 +546,6 @@ int main(int argc, char** argv)
 
     } // repeat until user exits shell
     while(repeat == true);
-
-    // use fork, exec, and waitpid to execute commands
-    // conditional check: foreground or background
-    // shell will wait for fg commands before prompting for next command
-    // shell will not wait for bg commands before prompting for next command
-    // conditional check: did user specify file to take standard input?
-    // if so, use that
-    // if not, bg command redirect standard input from /dev/null
-
-    // use the PATH variable to look for commands
-    // allow shell scripts to be executed
-    // the right version of exec will do this automatically
-    // if command fails b/c shell could not find command to run
-    // then print error message
-    // exit with status 1
-
-    // after fork
-    // input/output redirection
-    // redirected input file is opened for reading only
-    // if cannot open file for reading
-    // then print error message
-    // and exit with status 1
-    // before exec
-
-
-    // if command is terminated by signal
-    // then print message indicating which signal terminated the process
-
-    // catch CTRL-C interrupts from keyboard
-    // make sure they do not terminate shell or bg commands, but only fg command
-
-    // any other command is passed on to member of exec() family of functions
-
-    // if command is blank line or comment
-    // then ignore it, do nothing, and reprompt for another command
 
     return 0;
 }
@@ -527,7 +568,7 @@ void bgHandler(int sig, siginfo_t* info, void* vp)
 }
 
 
-//void sigintHandler(int sig, siginfo_t* info, void* vp)
+
 void sigintHandler()
 {
     // if interrupt signal occurs while fg process is running, kill it
