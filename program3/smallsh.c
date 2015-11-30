@@ -70,7 +70,7 @@ int main(int argc, char** argv)
     // create instance of sigaction struct
     struct sigaction background_act;
     background_act.sa_sigaction = bgHandler; // SIG_IGN    
-    background_act.sa_flags = SA_SIGINFO;
+    background_act.sa_flags = SA_SIGINFO|SA_RESTART;
     sigemptyset(&(background_act.sa_mask));
 
     // set up signal handler for completed child process
@@ -119,7 +119,11 @@ int main(int argc, char** argv)
         printf(": ");
 
         // get user input
-        fgets(input, MAX_LENGTH, stdin);
+//        do
+//        {
+            fgets(input, MAX_LENGTH, stdin);
+//        }
+//        while (input == NULL);
 
         fflush(stdin);
 
@@ -360,5 +364,7 @@ void bgHandler(int sig, siginfo_t* info, void* vp)
  
         bgpid[0] = INT_MAX;
     } 
+
+    return;
 }
 
