@@ -44,6 +44,9 @@ int bgStatus;
 pid_t bgpid[1000];         // array of open background process IDs
 pid_t completed_pid[1000]; // array of completed bg process IDs
 
+
+
+// add comment block here
 void bgHandler(int sig, siginfo_t* info, void* vp);
 
 
@@ -84,8 +87,11 @@ int main(int argc, char** argv)
 
     do
     {
-       // create array of pointers to the strings in the arg array
+        // create array of pointers to the strings in the arg array
         char **next = args;
+
+        // clear input buffer each iteration
+        strcpy(input, "\0");
  
 //       do
         if (completed_pid[0] != INT_MAX)
@@ -106,8 +112,8 @@ int main(int argc, char** argv)
 //        while (bgpid > 0); // continue until all completed bg processes reporte
 
         // flush out prompt each time it is printed
-        fflush(stdin);
-        fflush(stdout);
+//        fflush(stdin);
+//        fflush(stdout);
 
         // prompt user for input
         printf(": ");
@@ -115,8 +121,10 @@ int main(int argc, char** argv)
         // get user input
         fgets(input, MAX_LENGTH, stdin);
 
+        fflush(stdin);
+
         // check for blank line
-        if (input[0] == '\n')
+        if (input[0] == '\n' || input[0] == '\0')
         {
             continue;
         }
@@ -257,7 +265,8 @@ int main(int argc, char** argv)
 
                 // will never run unless error (i.e.- bad filename)
                 printf("%s:", args[0]);
-                fflush(stdout);
+//                fflush(stdin);
+//                fflush(stdout);
                 perror(" ");  
  
                 return(1); // end child process
@@ -266,7 +275,8 @@ int main(int argc, char** argv)
             {   
                 // if unable to fork print error
                 printf("%s:", args[0]);
-                fflush(stdout);  
+//                fflush(stdin);
+//                fflush(stdout);  
                 perror(" ");
             } 
             else
