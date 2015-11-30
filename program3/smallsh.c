@@ -21,11 +21,13 @@
  *****************************************************************************/
 
 #include <errno.h>     // for errno
-#include <limits.h>
+#include <fcntl.h>     // for open
+#include <limits.h>    // for INT_MAX
 #include <signal.h>    // for sigset_t
 #include <stdio.h>     // for fgets (, fopen, fclose, fseek)
 #include <stdlib.h>    // for getenv, malloc, free (, rand and srand)
 #include <string.h>    // for strcpy, strcat
+#include <sys/stat.h>  // for stat 
 #include <sys/types.h> // for pid_t
 #include <sys/wait.h>  // for waitpid
 #include <unistd.h>    // for exec (,getpid)
@@ -68,6 +70,8 @@ int main(int argc, char** argv)
     int bgExitStatus;
     int bgStatus; 
     int exitStatus;
+    int fd;
+    int fd2;
     int i;
     int j;
     int numArgs;
@@ -370,11 +374,27 @@ int main(int argc, char** argv)
 
             if (cpid == 0) // child process
             {
+                // check to see if command is for bg process
+                if (isBackgroundProcess == true)
+                {
+                    // if so, redirect stdin to /dev/null
+                    fd = open("/dev/null/", O_RDONLY);
+                    if (fd == -1)
+                    {
+                        perror("open");
+                        exit(1); 
+                    }
 
-        // add NULL to array index after last arg to signal end of args
-//        strcpy(*next, "\0");
-//        char *temp = *next; // save pointer to dynamic memory for later
-        *next = NULL;
+                    fd2 = dup2(fd, 0);
+                    if (fd2 == -1)
+                    {
+                        perror("dup2");
+                        exit(1);
+                    }   
+                }
+
+                // add NULL pointer to last array index (only in child)
+                *next = NULL;
 
                 // exec using path version in order to use Linux built-ins
                 execvp(args[0], args);
@@ -384,9 +404,9 @@ int main(int argc, char** argv)
 //                fflush(stdin);
 //                fflush(stdout);
                 fflush(NULL);
-                perror(" ");  
+                perror("exec");  
  
-                return(1); // end child process
+                exit(1); // end child process
             }
             else if (cpid == -1) // parent process
             {   
