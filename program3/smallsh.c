@@ -41,6 +41,7 @@ typedef enum { false, true } bool;
 
 // declare global variables
 // bool childCompleted = false;
+int completed_cur = 0;
 int cur = 0;                   // index to add next bg process in bgpid[]
 pid_t bgpid[MAX_PIDS];         // array of open background process IDs
 pid_t completed_pid[MAX_PIDS]; // array of completed bg process IDs
@@ -144,6 +145,8 @@ int main(int argc, char** argv)
             i++; 
         }
 //        while (bgpid > 0); // continue until all completed bg processes reporte
+        // reset completed bg process array index tracker
+        completed_cur = 0;
 
         // flush out prompt each time it is printed
         fflush(stdin);
@@ -333,7 +336,7 @@ int main(int argc, char** argv)
                     isBackgroundProcess = false;
 
                     // add process id to array of background processes
-                    if (cur < MAX_PIDs)
+                    if (cur < MAX_PIDS)
                     {  
                         bgpid[cur++] = cpid;
                     }
@@ -402,11 +405,11 @@ void bgHandler(int sig, siginfo_t* info, void* vp)
     pid_t ref_pid = info->si_pid; 
 
     // if signal is not from fg process, process it here
-    if (ref_pid != fgpid)
+    if (ref_pid != fgpid && completed_cur < MAX_PIDS)
     {
         // add to completed bg process array so message can
         // be displayed in main loop
-        completed_pid[0] = ref_pid;
+        completed_pid[completed_cur++] = ref_pid;
     } 
 
     return;
