@@ -123,10 +123,6 @@ int main(int argc, char** argv)
         {
             strcpy(args[i], "\n");
 
-//            if (DEBUG)
-//            {
-//                printf("args[%d] = %s\n", i, args[i]);  
-//            } 
         }
 
         // clear input buffer each iteration
@@ -151,12 +147,12 @@ int main(int argc, char** argv)
                 bgExitStatus = WEXITSTATUS(bgStatus);
                 printf("background pid %d is done: exit value %d.\n", completed_pid[i], bgExitStatus);
             }
-            else
-            {
-                bgExitStatus = WTERMSIG(bgStatus);
-                printf("background pid %d is done: terminated by signal %d\n", completed_pid[i], bgExitStatus);
+//            else
+//            {
+  //              bgExitStatus = WTERMSIG(bgStatus);
+    //            printf("background pid %d is done: terminated by signal %d\n", completed_pid[i], bgExitStatus);
  
-            }
+      //      }
 
             // remove current ps from open background process array
             j = 0;
@@ -211,12 +207,12 @@ int main(int argc, char** argv)
         // flush out prompt
         fflush(stdin);
 
-        // check for blank lines, and NULL
-        if (input[0] == '\n' || input[0] == '\0')
+        // check for blank line
+        if (input[0] == '\n' || input[0] == '\0'); // || input[0] == EOF);
         {
             continue;
         }
- 
+
         // process and parse input
         numArgs = 0;
         token = strtok(input, " "); // check for multiple args
@@ -229,12 +225,11 @@ int main(int argc, char** argv)
         // loop to process args (up to 512)
         while (token != NULL && numArgs < MAX_ARGS)  
         {
- 
-            // this serves to ignore leading / duplicate / trailing spaces 
-            if (strlen(token) == 0)
-            {
-                continue;
-            }   
+            // exit at end of file to prevent segfault error in script 
+//            if (strcmp(token, "___EOF___") == 0)
+//            {
+//                exit(0);
+//            } 
 
             if (DEBUG)
             {

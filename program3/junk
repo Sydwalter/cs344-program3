@@ -2,4 +2,6 @@ junk
 Makefile
 p3testscript
 smallsh
+smallsh_bak2.c
+smallsh_bak.c
 smallsh.c
