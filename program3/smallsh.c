@@ -111,18 +111,23 @@ int main(int argc, char** argv)
     for (i = 0; i <= MAX_ARGS; i++)
     {
         args[i] = (char *) malloc((MAX_LENGTH + 1) * sizeof(char)); 
-
-        if (DEBUG)
-        {
-            strcpy(args[i], "filler");
-            printf("args[%d] = %s\n", i, args[i]);  
-        } 
     }  
 
     do
     {
         // create array of pointers to the strings in the arg array
         char **next = args;
+
+        // (re)initialize the argument array
+        for (i = 0; i <= MAX_ARGS; i++)
+        {
+            strcpy(args[i], "\n");
+
+            if (DEBUG)
+            {
+                printf("args[%d] = %s\n", i, args[i]);  
+            } 
+        }
 
         // clear input buffer each iteration
         strcpy(input, "\0");
@@ -368,9 +373,12 @@ int main(int argc, char** argv)
                 int inputOffset = 0;
                 int outputOffset = 0;
 
-                if (numArgs > 4 && strcmp(args[numArgs-4], "<"))
+                if (numArgs > 4 && strcmp(args[numArgs-4], "<") == 0)
                 {
-                    printf("1) input redirected to %s\n", args[numArgs-3]);     
+                    if (DEBUG)
+                    {
+                        printf("1) input redirected to %s\n", args[numArgs-3]);     
+                    }
 
                     // set flag to redirect input
                     redirectInput = true;
@@ -378,9 +386,12 @@ int main(int argc, char** argv)
                     // set target for input path
                     inputOffset = 3; 
                 }
-                else if (numArgs > 2 && strcmp(args[numArgs-2], "<"))
+                else if (numArgs > 2 && strcmp(args[numArgs-2], "<") == 0)
                 {
-                    printf("2) input redirected to %s\n", args[numArgs-1]);     
+                    if (DEBUG)
+                    {
+                        printf("2) input redirected to %s\n", args[numArgs-1]);     
+                    }
 
                     // set flag to redirect input
                     redirectInput = true;
@@ -388,19 +399,26 @@ int main(int argc, char** argv)
                     // set target for input path
                     inputOffset = 1; 
                 }
-                if (numArgs > 4 && strcmp(args[numArgs-4], ">"))
+                if (numArgs > 4 && strcmp(args[numArgs-4], ">") == 0)
                 {
-                    printf("3) output redirected to %s\n", args[numArgs-3]);     
-
+                    if (DEBUG)
+                    {
+                        printf("3) output redirected to %s\n", args[numArgs-3]);     
+                    }
+ 
                     // set flag to redirect input
                     redirectOutput = true;
 
                     // set target for output path
                     outputOffset = 3; 
                 }
-                else if (numArgs > 2 && strcmp(args[numArgs-2], ">"))
+                else if (numArgs > 2 && strcmp(args[numArgs-2], ">") == 0)
                 {
-                    printf("4) output redirected to %s\n", args[numArgs-1]);     
+                    if (DEBUG)
+                    {
+                        printf("4) output redirected to %s\n", args[numArgs-1]);     
+                    }
+ 
                     // set flag to redirect input
                     redirectOutput = true;
 
@@ -471,6 +489,7 @@ int main(int argc, char** argv)
                 // move the pointer to omit the input redirection from array
                 for (j = i; j > 0; j--)
                 {
+                    
                     *next--;
                 }
 
