@@ -60,6 +60,14 @@ void bgHandler(int sig, siginfo_t* info, void* vp);
 void sigintHandler();
 
 
+
+// add comment block here
+void sigtermHandler(int sig, siginfo_t* info, void* vp);
+
+
+void testHandler();
+
+
 int main(int argc, char** argv)
 {
     // declare variables
@@ -80,26 +88,43 @@ int main(int argc, char** argv)
     int status;
 
     // create instance of sigaction struct for background processes
-    struct sigaction background_act;
-    background_act.sa_sigaction = bgHandler;     
-    background_act.sa_flags = SA_SIGINFO|SA_RESTART;
-    sigfillset(&(background_act.sa_mask));
+//    struct sigaction background_act;
+  //  background_act.sa_sigaction = bgHandler;     
+   // background_act.sa_flags = SA_SIGINFO|SA_RESTART;
+   // sigemptyset(&(background_act.sa_mask));
     // set up signal handler for completed child process
-    sigaction(SIGCHLD, &background_act, NULL);
+   // sigaction(SIGCHLD, &background_act, NULL);
 
     // create instance of sigaction struct for foreground processes
-    struct sigaction foreground_act;
-    foreground_act.sa_handler = sigintHandler;
-    foreground_act.sa_flags = SA_RESTART;
-    sigfillset(&(foreground_act.sa_mask));
-    sigaction(SIGINT, &foreground_act, NULL); 
+  //  struct sigaction foreground_act;
+  //  foreground_act.sa_handler = sigintHandler;
+  //  foreground_act.sa_flags = SA_RESTART;
+  //  sigemptyset(&(foreground_act.sa_mask));
+  //  sigaction(SIGINT, &foreground_act, NULL); 
 
     // create sigaction struct to ignore interrupts the rest of the time
-    struct sigaction restOfTheTime_act;
-    restOfTheTime_act.sa_handler = SIG_IGN;
-    restOfTheTime_act.sa_flags = SA_RESTART;
-    sigfillset(&(restOfTheTime_act.sa_mask));
-    sigaction(SIGINT, &restOfTheTime_act, NULL); 
+  //  struct sigaction restOfTheTime_act;
+  //  restOfTheTime_act.sa_handler = SIG_IGN;
+  //  restOfTheTime_act.sa_flags = SA_RESTART;
+  //  sigemptyset(&(restOfTheTime_act.sa_mask));
+  //  sigaction(SIGINT, &restOfTheTime_act, NULL); 
+
+    // create instance of sigaction struct for sigterm signals
+    struct sigaction sigterm_act;
+
+    sigterm_act.sa_handler = testHandler;
+//    sigterm_act.sa_sigaction = sigtermHandler; 
+    sigterm_act.sa_flags = SA_RESTART; // SA_SIGINFO|SA_RESTART;
+    sigfillset(&(sigterm_act.sa_mask));
+ //    sigemptyset(&(sigterm_act.sa_mask));
+    sigaction(SIGTERM, &sigterm_act, NULL); 
+
+    // create instance of sigaction struct for sigkill signals
+//    struct sigaction sigkill_act;
+  //  sigkill_act.sa_sigaction = sigtermHandler; 
+   // sigkill_act.sa_flags = SA_SIGINFO|SA_RESTART;
+   // sigemptyset(&(sigkill_act.sa_mask));
+   // sigaction(SIGKILL, &sigkill_act, NULL); 
 
     // initialize arrays for bg processes
     for (i = 0; i < MAX_PIDS; i++)
@@ -123,10 +148,10 @@ int main(int argc, char** argv)
         {
             strcpy(args[i], "\n");
 
-//            if (DEBUG)
-//            {
-//                printf("args[%d] = %s\n", i, args[i]);  
-//            } 
+            if (DEBUG)
+            {
+                printf("args[%d] = %s\n", i, args[i]);  
+            } 
         }
 
         // clear input buffer each iteration
@@ -150,12 +175,6 @@ int main(int argc, char** argv)
             {
                 bgExitStatus = WEXITSTATUS(bgStatus);
                 printf("background pid %d is done: exit value %d.\n", completed_pid[i], bgExitStatus);
-            }
-            else
-            {
-                bgExitStatus = WTERMSIG(bgStatus);
-                printf("background pid %d is done: terminated by signal %d\n", completed_pid[i], bgExitStatus);
- 
             }
 
             // remove current ps from open background process array
@@ -548,13 +567,13 @@ int main(int argc, char** argv)
                     fgpid = cpid;
 
                     // set interrupt handler for fg process 
-                    sigaction(SIGINT, &foreground_act, NULL);
+//                    sigaction(SIGINT, &foreground_act, NULL);
 
                     // wait for fg child process
                     fgpid = waitpid(fgpid, &status, 0);
 
                     // restore to ignore interrupts
-                    sigaction(SIGINT, &restOfTheTime_act, NULL);
+  //                  sigaction(SIGINT, &restOfTheTime_act, NULL);
 
                     // reset global variable so signal handlers know
                     // there is no active fg process
@@ -579,11 +598,6 @@ int main(int argc, char** argv)
 
 void bgHandler(int sig, siginfo_t* info, void* vp)
 {
-    if (DEBUG)
-    {
-        printf("In bgHandler.\n");
-    }
-
     pid_t ref_pid = info->si_pid; 
 
     // if signal is not from fg process, process it here
@@ -615,3 +629,44 @@ void sigintHandler()
     // and simply return
     return;
 }
+
+
+
+void testHandler()
+{
+    printf("In sigtermHandler\n");
+}
+
+
+
+void sigtermHandler(int sig, siginfo_t* info, void* vp)
+{
+//    if (DEBUG)
+  //  {
+        printf("In sigtermHandler\n");
+   // }  
+  
+//    pid_t ref_pid = info->si_pid; 
+
+    // if process to be killed is fg process, save terminating signal 
+//    if (ref_pid == fgpid)
+  //  {
+        // set global variable for status messages
+    //    signalNum = info->si_signo;  
+   // }  
+   // else
+   // {  
+
+// remove pid of killed process from array of bg processes 
+
+        // print exit message for bg message
+//        printf("background pid %d is done: terminated by signal %d\n", ref_pid, info->si_signo); 
+
+   // }
+
+    // kill the process
+    //kill(ref_pid, SIGKILL);
+
+    return;  
+}
+
