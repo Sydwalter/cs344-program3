@@ -250,10 +250,6 @@ int main(int argc, char** argv)
             if (token != NULL)
             {
                 *next++;
-
-                // remove newline char from last arg
-//                token = strtok(*next, "\n"); 
-//                strcpy(*next, token);
             } 
         }
 
@@ -262,7 +258,7 @@ int main(int argc, char** argv)
             printf("overwriting %s", *next);
         }
 
-        // remove newline char from last arg
+        // remove newline char from last arg, if any
         token = strtok(*next, "\n"); 
         if (token != NULL)
         {
