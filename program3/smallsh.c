@@ -1,4 +1,4 @@
-/*****************************************************************************
+/******************************************************************************
  ** Filename:    smallsh.c
  ** Author:      Scott Milton
  ** Date:        11/23/15
@@ -10,27 +10,23 @@
  **              built in commands: exit, cd, and status. It also supports
  **              comments, which are lines beginning with the # character.
  **
- ** Input:       from the keyboard: type char*
- **              from files:        type char*
+ ** Input:       from the keyboard: type char[]
+ **              from files:        type char[]
  **
- ** Output:      to the console and files : type char*, int
- **              to files:                  type char*, int
- **
- **
- **
- *****************************************************************************/
+ ** Output:      to the console and files : type char[], char*, const char*, int
+ ******************************************************************************/
 
 #include <errno.h>     // for errno
 #include <fcntl.h>     // for open
 #include <limits.h>    // for INT_MAX
 #include <signal.h>    // for sigset_t
-#include <stdio.h>     // for fgets (, fopen, fclose, fseek)
-#include <stdlib.h>    // for getenv, malloc, free (, rand and srand)
+#include <stdio.h>     // for fgets
+#include <stdlib.h>    // for getenv, malloc, free
 #include <string.h>    // for strcpy, strcat
 #include <sys/stat.h>  // for stat 
 #include <sys/types.h> // for pid_t
 #include <sys/wait.h>  // for waitpid
-#include <unistd.h>    // for exec (,getpid)
+#include <unistd.h>    // for exec
 
 #define DEBUG             0 // change to 1 for debugging print statements 
 #define MAX_ARGS        512 // maximum arguments accepted on command line
@@ -122,11 +118,6 @@ int main(int argc, char** argv)
         for (i = 0; i <= MAX_ARGS; i++)
         {
             strcpy(args[i], "\n");
-
-//            if (DEBUG)
-//            {
-//                printf("args[%d] = %s\n", i, args[i]);  
-//            } 
         }
 
         // clear input buffer each iteration
@@ -259,6 +250,10 @@ int main(int argc, char** argv)
             if (token != NULL)
             {
                 *next++;
+
+                // remove newline char from last arg
+//                token = strtok(*next, "\n"); 
+//                strcpy(*next, token);
             } 
         }
 
@@ -269,8 +264,10 @@ int main(int argc, char** argv)
 
         // remove newline char from last arg
         token = strtok(*next, "\n"); 
-
-        strcpy(*next, token);
+        if (token != NULL)
+        {
+            strcpy(*next, token);
+        }
 
         if (DEBUG)
         {
@@ -359,7 +356,7 @@ int main(int argc, char** argv)
             }
             else if (signalNum != 0)
             {
-                printf("terminating signal was %d\n", signalNum);
+                printf("terminated by signal %d\n", signalNum);
             } 
 
         }
@@ -368,20 +365,11 @@ int main(int argc, char** argv)
             // need fork and exec
             cpid = fork();
 
-    // input/output redirection
-    // redirected input file is opened for reading only
-    // if cannot open file for reading
-    // then print error message
-    // and exit with status 1
-    // before exec
-
             if (cpid == 0) // child process
             {
                 bool checkStatus = false; 
                 bool redirectInput = false;
                 bool redirectOutput = false;
-//                bool remove1 = false;
-//                bool remove2 = false;
                 int inputOffset = 0;
                 int outputOffset = 0;
 
@@ -418,7 +406,7 @@ int main(int argc, char** argv)
                         printf("3) output redirected to %s\n", args[numArgs-3]);     
                     }
  
-                    // set flag to redirect input
+                    // set flag to redirect output
                     redirectOutput = true;
 
                     // set target for output path
@@ -431,7 +419,7 @@ int main(int argc, char** argv)
                         printf("4) output redirected to %s\n", args[numArgs-1]);     
                     }
  
-                    // set flag to redirect input
+                    // set flag to redirect output
                     redirectOutput = true;
 
                     // set target for output path
@@ -456,17 +444,16 @@ int main(int argc, char** argv)
                 {
                     if (fd == -1)
                     {
-                        perror("open");
+                        printf("smallsh: cannot open %s for input\n", args[numArgs - inputOffset]);
                         exit(1); 
                     }
 
                     fd2 = dup2(fd, 0);
                     if (fd2 == -1)
                     {
-                        perror("dup2");
+                        printf("smallsh: cannot open %s for input\n", args[numArgs - inputOffset]);
                         exit(1);
                     }   
-//                    checkStatus = false;
                 }
 
                 if (redirectOutput == true)
@@ -475,20 +462,20 @@ int main(int argc, char** argv)
 
                     if (fd == -1)
                     {
-                        perror("open");
+                        printf("smallsh: cannot open %s for output\n", args[numArgs - outputOffset]);
                         exit(1); 
                     }
 
                     fd2 = dup2(fd, 1);
                     if (fd2 == -1)
                     {
-                        perror("dup2");
+                        printf("smallsh: cannot open %s for output\n", args[numArgs - outputOffset]);
                         exit(1);
                     }   
                 }
 
-                i = 0;
                 // get the greater of the offsets, if any
+                i = 0;
                 if (inputOffset > outputOffset)
                 {
                     i = inputOffset + 1;
@@ -501,7 +488,6 @@ int main(int argc, char** argv)
                 // move the pointer to omit the input redirection from array
                 for (j = i; j > 0; j--)
                 {
-                    
                     *next--;
                 }
 
@@ -511,10 +497,10 @@ int main(int argc, char** argv)
                 // exec using path version in order to use Linux built-ins
                 execvp(args[0], args);
 
-                // will never run unless error (i.e.- bad filename)
+                // this will never run unless error (i.e.- bad filename)
                 printf("%s", args[0]);
                 fflush(NULL);
-                perror("exec");  
+                perror(" ");  
  
                 exit(1); // end child process
             }
