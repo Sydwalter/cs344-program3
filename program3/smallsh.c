@@ -47,13 +47,49 @@ pid_t fgpid = INT_MAX;         // running foreground process
 
 
 
-// add comment block here
+/******************************************************************************
+ ** Function:          bgHandler()
+ ** Description:       This function handles SIGCHLD signals. If the signal is
+ **                    received from a background child process, its PID is 
+ **                    stored in an array so it can be cleaned up at an
+ **                    appropriate point later in the program.   
+ ** Parameters:        one int: sig,
+ **                    one pointer to type siginfo_t: info,
+ **                    one pointer to a function: vp  
+ ** Pre-Conditions:    a sigaction struct is initialized and this function is
+ **                    set as the sa_sigaction value. SA_INFO must be 
+ **                    included in sa_flags for the struct. completed_pid[] is
+ **                    a global array of type pid_t and completed_cur is a
+ **                    global variable of type INT that points to the index
+ **                    to write the next PID to. fgpid is a global variable of
+ **                    type INT with the PID of the current foreground child
+ **                    process (if any) or set to INT_MAX otherwise    
+ ** Post-Conditions:   the SIGCHLD signal has been captured and the PID of the
+ **                    referring process has been added to completed_pid[] at
+ **                    the index with the value of completed_cur 
+ **                     
+ ******************************************************************************/
 void bgHandler(int sig, siginfo_t* info, void* vp);
 
 
 
-// add comment block here
+/******************************************************************************
+ ** Function:          sigintHandler()
+ ** Description:       This function handles interrupt signals (SIGINT/cntl + C)
+ **                    that occur while the program is running. If the signal
+ **                    occurs while a foreground child process is running, the
+ **                    function kills it and sets a flag so that an appropriate
+ **                    message can be displayed in the main function. Signals
+ **                    from other processes are ignored. 
+ ** Parameters:        none
+ ** Pre-Conditions:    a sigaction struct is initialized and this function is
+ **                    set as the sa_handler. fgpid and signalNum are global
+ **                    variables of type INT  
+ ** Post-Conditions:   the SIGINT has been captured and the foreground process
+ **                    (if any) has been killed  
+ ******************************************************************************/
 void sigintHandler();
+
 
 
 int main(int argc, char** argv)
